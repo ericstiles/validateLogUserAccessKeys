@@ -24,7 +24,11 @@ A *warning* boolean property is added to the Access Key object defining if the k
 * **Name**: "validateLogUserAccessKeys Lambda" - Lambda function name
 * **Environment**: "Dev" -  Used as a visual cue for lambda deployment
 
-## SAM Parameters
+# SAM
+
+Note that the _default_ parameter value **NotificationEmail** in _samTemplate.yaml_ needs to have an email set for it.  
+
+## Parameters
 The *sam* yml takes two parameters:
 * topic name: The SNS topic name that should be used to send the message
 * email: The email that the SNS topic will send notifications too
