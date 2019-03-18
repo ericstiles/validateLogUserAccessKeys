@@ -1,0 +1,20 @@
+{
+  "name": "validatelogaccesskeys",
+  "version": "1.0.0",
+  "description": "warn, validate, then log user access keys that are close to expiring or expired",
+  "main": "handler.js",
+  "scripts": {
+    "test": "mocha ./test*",
+    "zip": "node ./shell.js"
+  },
+  "author": "eric stiles",
+  "license": "?",
+  "dependencies": {
+    "aws-sdk": "^2.389.0"
+  },
+  "devDependencies": {
+    "aws-sdk-mock": "^4.3.0",
+    "rewire": "^4.0.1",
+    "unit.js": "^2.1.0"
+  }
+}

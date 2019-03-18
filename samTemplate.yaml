@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Validate, log and warn users about access keys that need to be rotated
+Parameters: 
+  NotificationEmail:
+    Type: String
+    Default: <EMAIL>
+  TopicName:
+    Type: String
+    Default: accesskey_warning_and_alerts
+Resources:
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "sendPublish"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: 
+                  - "IAM:ListUsers"
+                  - "IAM:ListAccessKeys"
+                  - "SNS:Publish"
+                Resource: "*"
+  LambdaTriggerEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Periodic event triggering lambda function to check on user access keys
+      Name: LambdaTriggerEvent
+      ScheduleExpression: "cron(0 6 * * ? *)"
+      State: ENABLED
+      RoleArn:
+        Fn::GetAtt:
+          - "LambdaExecutionRole"
+          - "Arn"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "LambdaFunction"
+              - "Arn"
+          Id: "LambdaFunction"
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: 
+        Fn::GetAtt: 
+          - LambdaFunction
+          - Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: 'events.amazonaws.com'
+      SourceArn:
+        Fn::GetAtt:
+          - "LambdaTriggerEvent"
+          - "Arn"
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Description: "Lambda description for logging user access"
+    Properties:
+      Handler: handler.validate
+      Runtime: nodejs8.10
+      CodeUri: ./
+      Role:
+        Fn::GetAtt:
+        - "LambdaExecutionRole"
+        - "Arn"        
+      Environment:
+          Variables:
+            DAYS_FOR_WARNING: 10
+            DAYS_VALID: 90
+            DEBUG: false
+            LOG: true
+            LOG_PREPEND_ISSUE_NOTIFIER: ACCESS KEY VALIDATION ISSUE
+            LOG_PREPEND_WARNING_NOTIFIER: ACCESS KEY VALIDATION WARNING
+            SNS_SUBJECT: Warning / Expiration for review
+            SNS_TOPICARN:
+              Fn::Sub: arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${TopicName}
+      Tags:
+        Name: "validateLogUserAccessKeys Lambda"
+        Environment: "Dev"
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: AccessKey Message
+      TopicName: !Ref TopicName
+      Subscription:
+        - Endpoint: !Ref NotificationEmail
+          Protocol: email

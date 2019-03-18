@@ -1,0 +1,40 @@
+
+version: 0.2
+phases:
+  install:
+    commands:
+      - echo starting phase->install
+      - echo Installing...
+      - date
+      - echo Installing Mocha...
+      - npm install -g mocha
+  pre_build:
+    commands:
+      - echo starting phase->pre_build
+      - echo Installing source NPM dependencies...
+      - npm install unit.js
+  build:
+    commands:
+      - echo starting phase->build
+      - echo Build started on `date`
+      - echo Compiling the Node.js code
+      - npm test
+
+      - aws cloudformation package 
+        --template-file samTemplate.yaml 
+        --kms-key-id 23c357d3-600a-4f87-8754-fbc831b0464d 
+        --s3-bucket bucket-validateloguseraccesskeys 
+        --output-template-file outputSamTemplate.yaml
+  post_build:
+    commands:
+      - echo starting phase->post_build
+      - echo Build completed on `date`
+
+
+
+artifacts:
+  type: zip
+  files:
+    - samTemplate.yaml
+    - outputSamTemplate.yaml
+
